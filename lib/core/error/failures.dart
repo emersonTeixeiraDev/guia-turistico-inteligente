@@ -11,6 +11,8 @@ abstract class Failure extends Equatable {
 // Falha genérica de Servidor (API 500, 404, etc)
 class ServerFailure extends Failure {}
 
+class ServerException extends Failure {}
+
 // Falha de Cache/Banco Local
 class CacheFailure extends Failure {}
 
