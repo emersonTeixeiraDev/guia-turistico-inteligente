@@ -5,10 +5,10 @@ import 'package:guia_turistico_inteligente/features/tourist_spots/domain/entitie
 
 import '../../domain/repositories/tourist_spot_repository.dart';
 
-class TouTouristSpotRepositoryImpl implements TouristSpotRepository {
+class TouristSpotRepositoryImpl implements TouristSpotRepository {
   final TouristSpotRemoteDataSource remoteDataSource;
 
-  TouTouristSpotRepositoryImpl({required this.remoteDataSource});
+  TouristSpotRepositoryImpl({required this.remoteDataSource});
 
   @override
   Future<Either<Failure, List<TouristSpot>>> getNearbySpots({
@@ -16,7 +16,7 @@ class TouTouristSpotRepositoryImpl implements TouristSpotRepository {
     required double lng,
   }) async {
     try {
-      final remoteSpots = await remoteDataSource.getgetNearbySpots(lat, lng);
+      final remoteSpots = await remoteDataSource.getNearbySpots(lat, lng);
       return Right(remoteSpots);
     } on ServerFailure {
       return Left(ServerFailure());
