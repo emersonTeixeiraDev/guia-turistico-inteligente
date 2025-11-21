@@ -41,6 +41,7 @@ dependencies:
   mocktail: ^1.0.4
   dio: ^5.9.0
   internet_connection_checker: ^3.0.1
+  bloc_test: ^10.0.0
 
 dev_dependencies:
   flutter_test:
