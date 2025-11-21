@@ -1,7 +1,7 @@
 import 'package:guia_turistico_inteligente/features/tourist_spots/domain/usecases/get_nearby_spots.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'tourist_spot_event.dart';
-import 'tourist_spot_state.dart';
+import 'package:guia_turistico_inteligente/features/tourist_spots/presentation/bloc/tourist_spot_event.dart';
+import 'package:guia_turistico_inteligente/features/tourist_spots/presentation/bloc/tourist_spot_state.dart';
 
 const String serverFailureMassege = 'Erro ao conectar com o servidor';
 
