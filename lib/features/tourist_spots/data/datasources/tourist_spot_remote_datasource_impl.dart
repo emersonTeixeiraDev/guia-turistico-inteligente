@@ -36,7 +36,7 @@ class TouristSpotRemoteDataSourceImpl implements TouristSpotRemoteDataSource {
           .toList();
     } else {
       // Se der erro 404, 500, etc, lançamos nossa Exception customizada
-      throw ServerFailure();
+      throw ServerException();
     }
   }
 }
