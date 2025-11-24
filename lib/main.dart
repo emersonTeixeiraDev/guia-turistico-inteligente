@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:guia_turistico_inteligente/features/tourist_spots/presentation/pages/tourist_spots_page.dart';
 import 'injection_container.dart' as di;
 
 void main() async {
@@ -17,7 +18,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Guia Turístico Inteligente',
       theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
-      home: const Scaffold(body: Center(child: Text('App Inicializado!'))),
+      home: TouristSpotsPage(),
     );
   }
 }

@@ -1,10 +1,12 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:guia_turistico_inteligente/core/error/failures.dart';
+import 'package:mocktail/mocktail.dart';
+
+// Imports do projeto
 import 'package:guia_turistico_inteligente/core/util/constants.dart';
 import 'package:guia_turistico_inteligente/features/tourist_spots/data/datasources/tourist_spot_remote_datasource_impl.dart';
 import 'package:guia_turistico_inteligente/features/tourist_spots/data/models/tourist_spot_model.dart';
-import 'package:mocktail/mocktail.dart';
 
 class MockDio extends Mock implements Dio {}
 
@@ -17,47 +19,49 @@ void main() {
     dataSource = TouristSpotRemoteDataSourceImpl(client: mockDio);
   });
 
-  final tJsonList = [
-    {
-      "xid": "1",
-      "name": "Local Teste",
-      "wikipedia_extracts": {"text": "Descricao"},
-      "preview": {"source": "url.jpg"},
-      "point": {"lat": 10.0, "lon": 20.0},
-      "dist": 100.0,
-    },
-  ];
+  // 1. JSON simulando a estrutura da Overpass API (OSM)
+  final tJsonOverpass = {
+    "elements": [
+      {
+        "type": "node",
+        "id": 12345,
+        "lat": 10.0,
+        "lon": 20.0,
+        "tags": {"name": "Museu de Teste", "tourism": "museum"},
+      },
+    ],
+  };
+
+  const tLat = 10.0;
+  const tLng = 20.0;
 
   void setUpMockDioSuccess200() {
     when(
       () => mockDio.get(any(), queryParameters: any(named: 'queryParameters')),
     ).thenAnswer(
       (_) async => Response(
-        data: tJsonList,
+        data: tJsonOverpass, // Retorna o JSON novo
         statusCode: 200,
         requestOptions: RequestOptions(path: ''),
       ),
     );
   }
 
-  void setUpMockDioFailure404() {
+  void setUpMockDioFailure() {
     when(
       () => mockDio.get(any(), queryParameters: any(named: 'queryParameters')),
-    ).thenAnswer(
-      (_) async => Response(
-        data: 'Algo deu errado',
-        statusCode: 404,
+    ).thenThrow(
+      DioException(
         requestOptions: RequestOptions(path: ''),
+        error: 'Erro de conexão',
+        type: DioExceptionType.connectionError,
       ),
     );
   }
 
   group('getNearbySpots', () {
-    const tLat = 10.0;
-    const tLng = 20.0;
-
     test(
-      'deve retornar uma List<TouristSpotModel> quando o status code for 200 (Sucesso)',
+      'deve retornar uma List<TouristSpotModel> quando a chamada para a API for bem sucedida (200)',
       () async {
         // ARRANGE
         setUpMockDioSuccess200();
@@ -67,35 +71,31 @@ void main() {
 
         // ASSERT
         expect(result, isA<List<TouristSpotModel>>());
-        // Verifica se chamou a URL certa com a API Key correta
+        expect(result.length, 1);
+        expect(result.first.name, 'Museu de Teste');
+
+        // Verifica se chamou a URL base correta com a Query da Overpass
         verify(
           () => mockDio.get(
-            kRadiusEndpoint,
+            kBaseUrl, // <--- Usando a constante correta agora
             queryParameters: {
-              'radius': 1000,
-              'lon': tLng,
-              'lat': tLat,
-              'rate': 2,
-              'format': 'json',
-              'apikey': kApiKey,
+              'data':
+                  '[out:json];node["tourism"](around:5000,$tLat,$tLng);out;',
             },
           ),
         );
       },
     );
 
-    test(
-      'deve lançar ServerException quando o status code for 404 ou outros erros',
-      () async {
-        // ARRANGE
-        setUpMockDioFailure404();
+    test('deve lançar ServerException quando ocorrer um erro no Dio', () async {
+      // ARRANGE
+      setUpMockDioFailure();
 
-        // Como esperamos uma Exception, a chamada é feita dentro de uma função anônima
-        final call = dataSource.getNearbySpots;
+      // ACT
+      final call = dataSource.getNearbySpots;
 
-        // Esperamos que a chamada com esses parâmetros jogue a Exception
-        expect(() => call(tLat, tLng), throwsA(isA<ServerException>()));
-      },
-    );
+      // ASSERT
+      expect(() => call(tLat, tLng), throwsA(isA<ServerException>()));
+    });
   });
 }

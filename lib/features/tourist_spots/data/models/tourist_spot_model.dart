@@ -1,4 +1,4 @@
-import 'package:guia_turistico_inteligente/features/tourist_spots/domain/entities/tourist_spot.dart';
+import '../../domain/entities/tourist_spot.dart';
 
 class TouristSpotModel extends TouristSpot {
   const TouristSpotModel({
@@ -11,28 +11,25 @@ class TouristSpotModel extends TouristSpot {
     required super.distance,
   });
 
-  factory TouristSpotModel.fromJson(Map<String, dynamic> json) {
-    return TouristSpotModel(
-      id: json['xid'] ?? '',
-      name: json['name'] ?? 'Sem nome',
-      description:
-          json['wikipedia_extracts']?['text'] ??
-          '', // Exemplo de estrutura complexa
-      imageUrl: json['preview']?['source'] ?? '',
-      latitude: (json['point']?['lat'] ?? 0.0).toDouble(),
-      longitude: (json['point']?['lon'] ?? 0.0).toDouble(),
-      distance: (json['dist'] ?? 0.0).toDouble(),
-    );
-  }
+  // Fábrica específica para o JSON da Overpass API
+  factory TouristSpotModel.fromOverpassJson(Map<String, dynamic> json) {
+    // Os dados úteis ficam dentro de 'tags'
+    final tags = json['tags'] ?? {};
 
-  Map<String, dynamic> toJson() {
-    return {
-      'xid': id,
-      'name': name,
-      'description': description,
-      'imageUrl': imageUrl,
-      'point': {'lat': latitude, 'lon': longitude},
-      'dist': distance,
-    };
+    return TouristSpotModel(
+      id: json['id'].toString(),
+      name: tags['name'] ?? 'Ponto Turístico (Sem Nome)',
+      description: tags['tourism'] != null
+          ? 'Tipo: ${tags['tourism']}'
+          : 'Local histórico ou turístico.',
+
+      // A Overpass NÃO fornece imagens. Deixamos vazio e a UI mostrará um ícone.
+      imageUrl: '',
+
+      latitude: (json['lat'] ?? 0.0).toDouble(),
+      longitude: (json['lon'] ?? 0.0).toDouble(),
+      distance:
+          0, // A API não calcula distância, teríamos que calcular na mão (Geolocator)
+    );
   }
 }

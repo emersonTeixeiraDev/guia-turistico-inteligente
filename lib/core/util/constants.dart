@@ -1,5 +1,5 @@
-const String kApiKey = '';
-const String kBaseUrl = 'https://api.opentripmap.com/0.1/en/places';
+// URL do Interpretador da Overpass API
+const String kBaseUrl = 'https://overpass-api.de/api/interpreter';
 
-// Exemplo de endpoint: busca num raio de 1000m
-const String kRadiusEndpoint = '$kBaseUrl/radius';
+// Não precisa de chave!
+const String kApiKey = '';
