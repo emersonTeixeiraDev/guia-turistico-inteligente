@@ -1,20 +1,32 @@
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
-import 'package:guia_turistico_inteligente/features/tourist_spots/presentation/bloc/tourist_spot_bloc.dart';
 
+// Imports do Location Service (Core)
+// Verifique se a sua pasta se chama 'platform' ou 'plataform' (no seu código estava plataform)
+import 'package:guia_turistico_inteligente/core/plataform/location_service.dart';
+import 'package:guia_turistico_inteligente/core/plataform/location_service_impl.dart';
+
+// Imports da Feature
 import 'features/tourist_spots/data/datasources/tourist_spot_remote_datasource.dart';
 import 'features/tourist_spots/data/datasources/tourist_spot_remote_datasource_impl.dart';
 import 'features/tourist_spots/data/repositories/tourist_spot_repository_impl.dart';
 import 'features/tourist_spots/domain/repositories/tourist_spot_repository.dart';
 import 'features/tourist_spots/domain/usecases/get_nearby_spots.dart';
+import 'features/tourist_spots/presentation/bloc/tourist_spot_bloc.dart';
 
 final sl = GetIt.instance;
 
 Future<void> init() async {
   // ! Features - Tourist Spots
-  // Usamos registerFactory para criar uma nova instância sempre que a tela pedir.
-  // Isso evita problemas de estado "preso" quando você sai e volta para a tela.
-  sl.registerLazySingleton(() => TouristSpotBloc(getNearbySpots: sl()));
+
+  // Bloc
+  // CORREÇÃO: Usamos registerFactory (e não Singleton) para o BLoC
+  sl.registerFactory(
+    () => TouristSpotBloc(
+      getNearbySpots: sl(),
+      locationService: sl(), // Injeta o LocationService
+    ),
+  );
 
   // Use cases
   sl.registerLazySingleton(() => GetNearbySpots(sl()));
@@ -23,10 +35,16 @@ Future<void> init() async {
   sl.registerLazySingleton<TouristSpotRepository>(
     () => TouristSpotRepositoryImpl(remoteDataSource: sl()),
   );
+
   // Data sources
   sl.registerLazySingleton<TouristSpotRemoteDataSource>(
     () => TouristSpotRemoteDataSourceImpl(client: sl()),
   );
+
+  // ! Core
+  // Registro do LocationService
+  sl.registerLazySingleton<LocationService>(() => LocationServiceImpl());
+
   // ! External
   sl.registerLazySingleton(() => Dio());
 }

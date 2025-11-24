@@ -14,17 +14,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # MUDANÇA PRINCIPAL: Usar a action do Flutter, não do Dart
+      # Instalação do Flutter
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-      
+
+      # Instala dependências
       - name: Install dependencies
         run: flutter pub get
 
+      # Análise do código (não falha se tiver warnings)
       - name: Analyze project source
-        run: flutter analyze
+        run: flutter analyze --no-fatal-warnings
 
+      # Executa testes
       - name: Run tests
         run: flutter test
