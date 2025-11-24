@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:guia_turistico_inteligente/core/error/failures.dart';
+import '../../../../core/error/failures.dart';
 import '../../../../core/util/constants.dart';
 import '../models/tourist_spot_model.dart';
 import 'tourist_spot_remote_datasource.dart';
@@ -11,31 +11,39 @@ class TouristSpotRemoteDataSourceImpl implements TouristSpotRemoteDataSource {
 
   @override
   Future<List<TouristSpotModel>> getNearbySpots(double lat, double lng) async {
-    // URL final: https://api.opentripmap.com/.../radius?radius=1000&lon=...&lat=...
-    // Nota: O OpenTripMap pede 'lon' e 'lat' e a chave 'apikey'
+    try {
+      final String overpassQuery =
+          '[out:json];node["tourism"](around:5000,$lat,$lng);out;';
 
-    final response = await client.get(
-      kRadiusEndpoint,
-      queryParameters: {
-        'radius': 1000, // 1km de raio (fixo por enquanto)
-        'lon': lng,
-        'lat': lat,
-        'rate': 2, // Apenas lugares com alguma relevância (2+)
-        'format': 'json',
-        'apikey': kApiKey,
-      },
-    );
+      final response = await client.get(
+        kBaseUrl,
+        queryParameters: {
+          'data': overpassQuery, // A query vai aqui dentro
+        },
+      );
 
-    if (response.statusCode == 200) {
-      // A API retorna uma List<dynamic> no formato JSON
-      final List<dynamic> jsonList = response.data;
+      if (response.statusCode == 200) {
+        // A Overpass retorna: { "elements": [ ... ] }
+        final data = response.data;
 
-      // Converte cada item da lista (Map) para um TouristSpotModel
-      return jsonList
-          .map((jsonItem) => TouristSpotModel.fromJson(jsonItem))
-          .toList();
-    } else {
-      // Se der erro 404, 500, etc, lançamos nossa Exception customizada
+        if (data['elements'] != null && (data['elements'] as List).isNotEmpty) {
+          final List<dynamic> elements = data['elements'];
+
+          // Filtramos apenas os que têm nome para a lista ficar bonita
+          final validSpots = elements.where(
+            (e) => e['tags'] != null && e['tags']['name'] != null,
+          );
+
+          return validSpots
+              .map((e) => TouristSpotModel.fromOverpassJson(e))
+              .toList();
+        } else {
+          return [];
+        }
+      } else {
+        throw ServerException();
+      }
+    } catch (e) {
       throw ServerException();
     }
   }
