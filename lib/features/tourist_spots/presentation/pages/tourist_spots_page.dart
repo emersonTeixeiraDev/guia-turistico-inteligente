@@ -6,16 +6,12 @@ import '../bloc/tourist_spot_bloc.dart';
 import '../bloc/tourist_spot_event.dart';
 import '../bloc/tourist_spot_state.dart';
 
-// VOLTAMOS PARA STATELESS (Mais simples!)
 class TouristSpotsPage extends StatelessWidget {
   const TouristSpotsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      // 🔥 A CORREÇÃO MÁGICA ESTÁ AQUI:
-      // Criamos o BLoC e JÁ disparamos o evento com '..add()'
-      // Isso elimina a necessidade de initState.
       create: (_) =>
           sl<TouristSpotBloc>()..add(GetSpotsByCurrentLocationEvent()),
 
@@ -128,7 +124,7 @@ class SpotCard extends StatelessWidget {
                   width: 60,
                   height: 60,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) =>
+                  errorBuilder: (context, error, stack) =>
                       const Icon(Icons.image_not_supported),
                 )
               : Container(
