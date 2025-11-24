@@ -16,3 +16,5 @@ class GetNearbySpotsEvent extends TouristSpotEvent {
   @override
   List<Object> get props => [lat, lng];
 }
+
+class GetSpotsByCurrentLocationEvent extends TouristSpotEvent {}
