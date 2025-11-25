@@ -8,6 +8,7 @@ class TouristSpot extends Equatable {
   final double latitude;
   final double longitude;
   final double distance;
+  final double rating;
 
   const TouristSpot({
     required this.id,
@@ -17,6 +18,7 @@ class TouristSpot extends Equatable {
     required this.latitude,
     required this.longitude,
     required this.distance,
+    this.rating = 0.0,
   });
 
   @override
@@ -28,5 +30,6 @@ class TouristSpot extends Equatable {
     latitude,
     longitude,
     distance,
+    rating,
   ];
 }

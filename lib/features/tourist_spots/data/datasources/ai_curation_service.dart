@@ -1,107 +1,106 @@
-// import 'dart:convert';
+import 'dart:convert';
+import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:guia_turistico_inteligente/features/tourist_spots/data/models/tourist_spot_model.dart';
+import '../../../../core/util/constants.dart';
 
-// import 'package:google_generative_ai/google_generative_ai.dart';
-// import 'package:guia_turistico_inteligente/features/tourist_spots/data/models/tourist_spot_model.dart';
+class AICurationService {
+  late final GenerativeModel _model;
 
-// import '../../../../core/util/constants.dart';
+  AICurationService() {
+    // Usamos o 'gemini-1.5-flash' pois é rápido, barato e inteligente
+    _model = GenerativeModel(model: 'gemini-1.5-flash', apiKey: kGeminiApiKey);
+  }
 
-// class AICurationService {
-//   late final GenerativeModel _model;
+  Future<List<TouristSpotModel>> curateList(
+    List<TouristSpotModel> rawSpots,
+  ) async {
+    if (rawSpots.isEmpty) return [];
+    print('🤖 Gemini: Analisando ${rawSpots.length} locais...');
 
-//   AICurationService() {
-//     // Usamos o 'gemini-1.5-flash' pois é rápido, barato e inteligente
-//     _model = GenerativeModel(model: 'gemini-1.5-flash', apiKey: kGeminiApiKey);
-//   }
+    final List<Map<String, dynamic>> spotsToAnalyze = rawSpots.map((spot) {
+      return {
+        'id': spot.id,
+        'name': spot.name,
+        'original_category': spot.description, // Enviamos o que temos do OSM
+      };
+    }).toList();
 
-//   Future<List<TouristSpotModel>> curateList(
-//     List<TouristSpotModel> rawSpots,
-//   ) async {
-//     if (rawSpots.isEmpty) return [];
-//     print('🤖 Gemini: Analisando ${rawSpots.length} locais...');
+    final String spotsJson = jsonEncode(spotsToAnalyze);
 
-//     final List<Map<String, dynamic>> spotsToAnalyze = rawSpots.map((spot) {
-//       return {
-//         'id': spot.id,
-//         'name': spot.name,
-//         'original_category': spot.description, // Enviamos o que temos do OSM
-//       };
-//     }).toList();
+    // 2. O Prompt (A ordem exata para a IA)
+    final prompt =
+        '''
+    Atue como um Guia Turístico Especialista. Tenho uma lista de locais do OpenStreetMap (JSON abaixo).
+    Analise cada um e retorne um JSON Array puro com melhorias.
 
-//     final String spotsJson = jsonEncode(spotsToAnalyze);
+    Regras:
+    1. Rating: Nota de 1.0 a 5.0 baseada na relevância turística.
+    2. Descrição: Resumo curto e vendedor (máx 2 frases) em Português.
+    3. Categoria: Corrija para: "História", "Natureza", "Arte", "Lazer", "Religião" ou "Outros".
+    4. Relevância: Se for irrelevante (estacionamento, banheiro, hotel), marque "is_relevant": false.
 
-//     // 2. O Prompt (A ordem exata para a IA)
-//     final prompt =
-//         '''
-//     Atue como um Guia Turístico Especialista. Tenho uma lista de locais do OpenStreetMap (JSON abaixo).
-//     Analise cada um e retorne um JSON Array puro com melhorias.
+    Entrada:
+    $spotsJson
 
-//     Regras:
-//     1. Rating: Nota de 1.0 a 5.0 baseada na relevância turística.
-//     2. Descrição: Resumo curto e vendedor (máx 2 frases) em Português.
-//     3. Categoria: Corrija para: "História", "Natureza", "Arte", "Lazer", "Religião" ou "Outros".
-//     4. Relevância: Se for irrelevante (estacionamento, banheiro, hotel), marque "is_relevant": false.
+    Saída (JSON Schema):
+    [
+      {
+        "id": "string",
+        "rating": double,
+        "description": "string",
+        "category": "string",
+        "is_relevant": boolean
+      }
+    ]
+    Retorne APENAS o JSON válido, sem markdown.
+    ''';
 
-//     Entrada:
-//     $spotsJson
+    try {
+      // 3. Envia para o Gemini
+      final content = [Content.text(prompt)];
+      final response = await _model.generateContent(content);
 
-//     Saída (JSON Schema):
-//     [
-//       {
-//         "id": "string",
-//         "rating": double,
-//         "description": "string",
-//         "category": "string",
-//         "is_relevant": boolean
-//       }
-//     ]
-//     Retorne APENAS o JSON válido, sem markdown.
-//     ''';
+      final String? responseText = response.text;
+      if (responseText == null) return rawSpots;
 
-//     // try {
-//     //   // 3. Envia para o Gemini
-//     //   final content = [Content.text(prompt)];
-//     //   final response = await _model.generateContent(content);
+      // Limpeza de markdown caso a IA mande ```json
+      final cleanJson = responseText
+          .replaceAll('```json', '')
+          .replaceAll('```', '')
+          .trim();
 
-//     //   final String? responseText = response.text;
-//     //   if (responseText == null) return rawSpots;
+      // 4. Decodifica a resposta
+      final List<dynamic> aiResults = jsonDecode(cleanJson);
+      final List<TouristSpotModel> curatedList = [];
 
-//     //   // Limpeza de markdown caso a IA mande ```json
-//     //   final cleanJson = responseText
-//     //       .replaceAll('```json', '')
-//     //       .replaceAll('```', '')
-//     //       .trim();
+      for (var originalSpot in rawSpots) {
+        // Acha o resultado correspondente da IA pelo ID
+        final aiData = aiResults.firstWhere(
+          (element) => element['id'] == originalSpot.id,
+          orElse: () => null,
+        );
 
-//     // 4. Decodifica a resposta
-//     //     final List<dynamic> aiResults = jsonDecode(cleanJson);
-//     //     final List<TouristSpotModel> curatedList = [];
+        if (aiData != null && aiData['is_relevant'] == true) {
+          // 🛑 AQUI VAI DAR ERRO POR ENQUANTO (copyWith não existe ainda)
+          curatedList.add(
+            originalSpot.copyWith(
+              description: aiData['description'],
+              // rating: aiData['rating'], // Futuramente adicionaremos rating
+            ),
+          );
+        } else if (aiData == null) {
+          // Se a IA ignorou, mantemos o original
+          curatedList.add(originalSpot);
+        }
+      }
 
-//     //     for (var originalSpot in rawSpots) {
-//     //       // Acha o resultado correspondente da IA pelo ID
-//     //       final aiData = aiResults.firstWhere(
-//     //         (element) => element['id'] == originalSpot.id,
-//     //         orElse: () => null,
-//     //       );
-
-//     //       if (aiData != null && aiData['is_relevant'] == true) {
-//     //         // 🛑 AQUI VAI DAR ERRO POR ENQUANTO (copyWith não existe ainda)
-//     //         curatedList.add(
-//     //           originalSpot.copyWith(
-//     //             description: aiData['description'],
-//     //             // rating: aiData['rating'], // Futuramente adicionaremos rating
-//     //           ),
-//     //         );
-//     //       } else if (aiData == null) {
-//     //         // Se a IA ignorou, mantemos o original
-//     //         curatedList.add(originalSpot);
-//     //       }
-//     //     }
-
-//     //     print(
-//     //       '✨ Gemini: Curadoria finalizada. De ${rawSpots.length} para ${curatedList.length} locais.',
-//     //     );
-//     //     return curatedList;
-//     //   } catch (e) {
-//     //     print('❌ Erro no Gemini: $e');
-//     //     return rawSpots; // Fallback: retorna lista original se der erro
-//   }
-// }
+      print(
+        '✨ Gemini: Curadoria finalizada. De ${rawSpots.length} para ${curatedList.length} locais.',
+      );
+      return curatedList;
+    } catch (e) {
+      print('❌ Erro no Gemini: $e');
+      return rawSpots; // Fallback: retorna lista original se der erro
+    }
+  }
+}
