@@ -17,18 +17,13 @@ class TouristSpotsPage extends StatelessWidget {
 
       child: Scaffold(
         appBar: AppBar(title: const Text('Guia Turístico Inteligente')),
-        body:
-            const TouristSpotsBody(), // Extraí para um widget separado (Boas Práticas)
+        body: const TouristSpotsBody(),
         floatingActionButton: const SearchButton(),
       ),
     );
   }
 }
 
-// ---------------------------------------------------------
-// Separamos o corpo para garantir que o contexto aqui dentro
-// enxergue o BlocProvider criado acima.
-// ---------------------------------------------------------
 class TouristSpotsBody extends StatelessWidget {
   const TouristSpotsBody({super.key});
 
