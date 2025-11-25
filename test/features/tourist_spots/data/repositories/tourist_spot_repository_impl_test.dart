@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:guia_turistico_inteligente/core/error/failures.dart';
+import 'package:guia_turistico_inteligente/features/tourist_spots/data/datasources/ai_curation_service.dart';
 import 'package:guia_turistico_inteligente/features/tourist_spots/data/datasources/tourist_spot_remote_datasource.dart';
 import 'package:guia_turistico_inteligente/features/tourist_spots/data/models/tourist_spot_model.dart';
 import 'package:guia_turistico_inteligente/features/tourist_spots/data/repositories/tourist_spot_repository_impl.dart';
@@ -10,11 +11,13 @@ import 'package:mocktail/mocktail.dart';
 class MockRemoteDataSource extends Mock
     implements TouristSpotRemoteDataSource {}
 
+class MockAICurationService extends Mock implements AICurationService {}
+
 void main() {
   late TouristSpotRepositoryImpl repository;
   late MockRemoteDataSource mockRemoteDataSource;
+  late MockAICurationService mockAICurationService;
 
-  // Dados Fakes para o Teste
   const tLat = 38.69;
   const tLng = -9.20;
 
@@ -26,51 +29,61 @@ void main() {
     latitude: tLat,
     longitude: tLng,
     distance: 1500.0,
+    rating: 4.5,
   );
-  final List<TouristSpotModel> tTouristSpotModelList = [tTouristSpotModel];
 
+  final List<TouristSpotModel> tTouristSpotModelList = [tTouristSpotModel];
   final List<TouristSpot> tTouristSpotEntityList = tTouristSpotModelList;
 
   setUp(() {
     mockRemoteDataSource = MockRemoteDataSource();
+    mockAICurationService = MockAICurationService();
+
     repository = TouristSpotRepositoryImpl(
       remoteDataSource: mockRemoteDataSource,
+      aiCurationService: mockAICurationService,
     );
   });
 
   group('getNearbySpots', () {
-    void setUpMockRemoteDataSourceSuccess() {
-      when(
-        () => mockRemoteDataSource.getNearbySpots(tLat, tLng),
-      ).thenAnswer((_) async => tTouristSpotModelList);
-    }
-
     test(
-      'deve retornar dados remotos quando a chamada for bem sucedida',
+      'deve retornar dados curados pela IA quando a chamada for bem sucedida',
       () async {
-        setUpMockRemoteDataSourceSuccess();
+        when(
+          () => mockRemoteDataSource.getNearbySpots(any(), any()),
+        ).thenAnswer((_) async => tTouristSpotModelList);
+
+        when(
+          () => mockAICurationService.curateList(any()),
+        ).thenAnswer((_) async => tTouristSpotModelList);
 
         final result = await repository.getNearbySpots(lat: tLat, lng: tLng);
 
-        verify(() => mockRemoteDataSource.getNearbySpots(tLat, tLng));
+        // ASSERT
+        // Verifica chamada no OSM
+        verify(() => mockRemoteDataSource.getNearbySpots(tLat, tLng)).called(1);
+
+        // Verifica chamada na IA
+        verify(
+          () => mockAICurationService.curateList(tTouristSpotModelList),
+        ).called(1);
 
         expect(result, equals(Right(tTouristSpotEntityList)));
       },
     );
 
     test(
-      'deve retornar ServerFailure quando a chamada remota falhar (ServerException)',
+      'deve retornar ServerFailure quando a chamada remota falhar',
       () async {
         when(
-          () => mockRemoteDataSource.getNearbySpots(tLat, tLng),
-        ).thenThrow(ServerFailure());
+          () => mockRemoteDataSource.getNearbySpots(any(), any()),
+        ).thenThrow(ServerException());
 
-        // ACT
         final result = await repository.getNearbySpots(lat: tLat, lng: tLng);
 
-        // ASSERT
-        // 1. Verifica se o DataSource Remoto foi chamado
-        verify(() => mockRemoteDataSource.getNearbySpots(tLat, tLng));
+        verify(() => mockRemoteDataSource.getNearbySpots(tLat, tLng)).called(1);
+
+        verifyNever(() => mockAICurationService.curateList(any()));
 
         expect(result, equals(Left(ServerFailure())));
       },
