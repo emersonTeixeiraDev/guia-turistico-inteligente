@@ -6,5 +6,6 @@ abstract class TouristSpotRepository {
   Future<Either<Failure, List<TouristSpot>>> getNearbySpots({
     required double lat,
     required double lng,
+    double radiusKm = 10,
   });
 }

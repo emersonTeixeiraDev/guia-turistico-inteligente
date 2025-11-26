@@ -1,3 +1,4 @@
+import 'package:geolocator/geolocator.dart';
 import '../../domain/entities/tourist_spot.dart';
 
 class TouristSpotModel extends TouristSpot {
@@ -9,27 +10,78 @@ class TouristSpotModel extends TouristSpot {
     required super.latitude,
     required super.longitude,
     required super.distance,
+    super.rating,
   });
 
-  // Fábrica específica para o JSON da Overpass API
-  factory TouristSpotModel.fromOverpassJson(Map<String, dynamic> json) {
-    // Os dados úteis ficam dentro de 'tags'
+  factory TouristSpotModel.fromOverpassJson(
+    Map<String, dynamic> json,
+    double userLat,
+    double userLng,
+  ) {
     final tags = json['tags'] ?? {};
+
+    // Categorização
+    String category = 'tourist_attraction';
+    String displayType = 'Ponto Turístico';
+
+    if (tags.containsKey('tourism')) {
+      category = tags['tourism'];
+      displayType = 'Turismo (${tags['tourism']})';
+    } else if (tags.containsKey('historic')) {
+      category = 'historical_site';
+      displayType = 'Histórico (${tags['historic']})';
+    } else if (tags.containsKey('natural')) {
+      category = tags['natural'];
+      displayType = 'Natureza (${tags['natural']})';
+    } else if (tags.containsKey('religion')) {
+      category = 'cathedral';
+      displayType = 'Religioso (${tags['religion']})';
+    } else if (tags.containsKey('leisure')) {
+      category = tags['leisure'];
+      displayType = 'Lazer (${tags['leisure']})';
+    }
+
+    category = category.replaceAll('_', ' ');
+
+    // Coordenadas do Ponto
+    final double spotLat = (json['lat'] ?? 0.0).toDouble();
+    final double spotLon = (json['lon'] ?? 0.0).toDouble();
+
+    final double calculatedDistance = Geolocator.distanceBetween(
+      userLat,
+      userLng,
+      spotLat,
+      spotLon,
+    );
 
     return TouristSpotModel(
       id: json['id'].toString(),
-      name: tags['name'] ?? 'Ponto Turístico (Sem Nome)',
-      description: tags['tourism'] != null
-          ? 'Tipo: ${tags['tourism']}'
-          : 'Local histórico ou turístico.',
+      name: tags['name'] ?? 'Local Interessante',
+      description: displayType,
+      imageUrl:
+          'https://loremflickr.com/400/400/$category?random=${json['id']}',
+      latitude: spotLat,
+      longitude: spotLon,
+      distance: calculatedDistance,
+      rating: 0.0,
+    );
+  }
 
-      // A Overpass NÃO fornece imagens. Deixamos vazio e a UI mostrará um ícone.
-      imageUrl: '',
-
-      latitude: (json['lat'] ?? 0.0).toDouble(),
-      longitude: (json['lon'] ?? 0.0).toDouble(),
-      distance:
-          0, // A API não calcula distância, teríamos que calcular na mão (Geolocator)
+  TouristSpotModel copyWith({
+    String? name,
+    String? description,
+    String? imageUrl,
+    double? rating,
+  }) {
+    return TouristSpotModel(
+      id: id,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      imageUrl: imageUrl ?? this.imageUrl,
+      latitude: latitude,
+      longitude: longitude,
+      distance: distance,
+      rating: rating ?? this.rating,
     );
   }
 }

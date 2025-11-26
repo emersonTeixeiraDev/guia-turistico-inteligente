@@ -16,3 +16,10 @@ class GetNearbySpotsEvent extends TouristSpotEvent {
   @override
   List<Object> get props => [lat, lng];
 }
+
+class GetSpotsByCurrentLocationEvent extends TouristSpotEvent {
+  final double radiusKm;
+
+  // Se a UI não mandar nada, usa 10km
+  const GetSpotsByCurrentLocationEvent({this.radiusKm = 10.0});
+}

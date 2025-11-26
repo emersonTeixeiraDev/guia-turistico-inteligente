@@ -13,16 +13,21 @@ class GetNearbySpots implements UseCases<List<TouristSpot>, Params> {
 
   @override
   Future<Either<Failure, List<TouristSpot>>> call(Params params) async {
-    return await repository.getNearbySpots(lat: params.lat, lng: params.lng);
+    return await repository.getNearbySpots(
+      lat: params.lat,
+      lng: params.lng,
+      radiusKm: params.radiusKm,
+    );
   }
 }
 
 class Params extends Equatable {
   final double lat;
   final double lng;
+  final double radiusKm;
 
-  const Params({required this.lat, required this.lng});
+  const Params({required this.lat, required this.lng, this.radiusKm = 10});
 
   @override
-  List<Object> get props => [lat, lng];
+  List<Object> get props => [lat, lng, radiusKm];
 }

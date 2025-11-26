@@ -1,35 +1,87 @@
-import 'package:guia_turistico_inteligente/features/tourist_spots/domain/usecases/get_nearby_spots.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:guia_turistico_inteligente/core/plataform/location_service.dart'; // Corrigi o caminho (plataform -> platform) se necessário
+import 'package:guia_turistico_inteligente/features/tourist_spots/domain/usecases/get_nearby_spots.dart';
 import 'package:guia_turistico_inteligente/features/tourist_spots/presentation/bloc/tourist_spot_event.dart';
 import 'package:guia_turistico_inteligente/features/tourist_spots/presentation/bloc/tourist_spot_state.dart';
 
-const String serverFailureMassege = 'Erro ao conectar com o servidor';
+const String serverFailureMessage = 'Erro ao conectar com o servidor';
 
 class TouristSpotBloc extends Bloc<TouristSpotEvent, TouristSpotState> {
   final GetNearbySpots getNearbySpots;
+  final LocationService locationService;
 
-  TouristSpotBloc({required this.getNearbySpots})
+  TouristSpotBloc({required this.getNearbySpots, required this.locationService})
     : super(TouristSpotInitial()) {
-    // Registramos o que fazer quando o evento GetNearbySpotsEvent chegar
+    // Handler para busca manual (quando passamos lat/lng)
     on<GetNearbySpotsEvent>(_onGetNearbySpots);
+
+    // Handler para busca automática (GPS)
+    on<GetSpotsByCurrentLocationEvent>(_onGetByGPS);
+  }
+
+  // --- LÓGICA DO GPS ---
+  Future<void> _onGetByGPS(
+    GetSpotsByCurrentLocationEvent event,
+    Emitter<TouristSpotState> emit,
+  ) async {
+    emit(TouristSpotLoading());
+
+    final isEnabled = await locationService.isLocationServiceEnabled();
+    if (!isEnabled) {
+      emit(
+        const TouristSpotError(message: 'GPS desligado. Ative para continuar.'),
+      );
+      return;
+    }
+
+    bool hasPermission = await locationService.checkPermission();
+    if (!hasPermission) {
+      await locationService.requestPermission();
+      hasPermission = await locationService.checkPermission();
+
+      if (!hasPermission) {
+        emit(
+          const TouristSpotError(message: 'Permissão de localização negada.'),
+        );
+        return;
+      }
+    }
+
+    // 3. Pega a Posição
+    final position = await locationService.getCurrentPosition();
+    if (position == null) {
+      emit(
+        const TouristSpotError(
+          message: 'Não foi possível obter sua localização.',
+        ),
+      );
+      return;
+    }
+
+    final (lat, lng) = position;
+
+    final failureOrSpots = await getNearbySpots(
+      Params(lat: lat, lng: lng, radiusKm: event.radiusKm),
+    );
+
+    failureOrSpots.fold(
+      (failure) => emit(const TouristSpotError(message: serverFailureMessage)),
+      (spots) => emit(TouristSpotLoaded(spots: spots)),
+    );
   }
 
   Future<void> _onGetNearbySpots(
     GetNearbySpotsEvent event,
     Emitter<TouristSpotState> emit,
   ) async {
-    // 1. Emite estado de Carregando
     emit(TouristSpotLoading());
 
-    // 2. Chama o UseCase com os parâmetros do evento
     final failureOrSpots = await getNearbySpots(
       Params(lat: event.lat, lng: event.lng),
     );
 
-    // 3. Verifica o resultado (Either)
-    // fold(função_se_erro, função_se_sucesso)
     failureOrSpots.fold(
-      (failure) => emit(const TouristSpotError(message: serverFailureMassege)),
+      (failure) => emit(const TouristSpotError(message: serverFailureMessage)),
       (spots) => emit(TouristSpotLoaded(spots: spots)),
     );
   }
