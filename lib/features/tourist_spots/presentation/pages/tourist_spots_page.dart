@@ -317,6 +317,14 @@ class SpotCard extends StatelessWidget {
       ),
     );
   }
+
+  // Função auxiliar para formatar metros em Km
+  String _formatDistance(double meters) {
+    if (meters >= 1000) {
+      return '${(meters / 1000).toStringAsFixed(1)} km';
+    }
+    return '${meters.toStringAsFixed(0)} m';
+  }
 }
 
 // ------------------------------------------------------------------

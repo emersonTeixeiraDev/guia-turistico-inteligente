@@ -32,6 +32,8 @@ dependencies:
   # Testes (Mocks e BLoC Testing)
   mocktail: ^1.0.4
   bloc_test: ^10.0.0
+  geolocator: ^14.0.2
+  google_generative_ai: ^0.4.7
 
 dev_dependencies:
   flutter_test:
