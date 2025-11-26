@@ -21,14 +21,12 @@ class TouristSpotBloc extends Bloc<TouristSpotEvent, TouristSpotState> {
 
   // --- LÓGICA DO GPS ---
   Future<void> _onGetByGPS(
-    GetSpotsByCurrentLocationEvent
-    event, // <--- CORREÇÃO 1: O tipo do evento correto
+    GetSpotsByCurrentLocationEvent event,
     Emitter<TouristSpotState> emit,
   ) async {
     emit(TouristSpotLoading());
 
     // 1. Verifica se o GPS (Hardware) está ligado
-    // CORREÇÃO 2: Usar isLocationServiceEnabled em vez de checkPermission aqui
     final isEnabled = await locationService.isLocationServiceEnabled();
     if (!isEnabled) {
       emit(
@@ -51,7 +49,6 @@ class TouristSpotBloc extends Bloc<TouristSpotEvent, TouristSpotState> {
         return;
       }
     }
-
     // 3. Pega a Posição
     final position = await locationService.getCurrentPosition();
     if (position == null) {
@@ -63,11 +60,12 @@ class TouristSpotBloc extends Bloc<TouristSpotEvent, TouristSpotState> {
       return;
     }
 
-    // 4. Chama o UseCase (Reaproveitando a lógica de busca)
     final (lat, lng) = position;
 
     // Aqui chamamos o usecase diretamente
-    final failureOrSpots = await getNearbySpots(Params(lat: lat, lng: lng));
+    final failureOrSpots = await getNearbySpots(
+      Params(lat: lat, lng: lng, radiusKm: event.radiusKm),
+    );
 
     failureOrSpots.fold(
       (failure) => emit(const TouristSpotError(message: serverFailureMessage)),
