@@ -27,9 +27,9 @@ dependencies:
 
   # Inteligência Artificial e Segurança
   google_generative_ai: ^0.4.7
-  flutter_dotenv: ^6.0.0 # Para esconder a API Key
+  flutter_dotenv: ^6.0.0
 
-  # Testes (Mocks e BLoC Testing)
+  # Testes
   mocktail: ^1.0.4
   bloc_test: ^10.0.0
 
@@ -38,16 +38,12 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^6.0.0
 
-# ----------------------------------------------------
-# A seção Flutter corrigida e limpa de duplicações:
-# ----------------------------------------------------
 flutter:
-  uses-material-design: true # Apenas uma vez!
+  uses-material-design: true
 
-  # Assets para carregar o cofre de variáveis de ambiente
-  # O arquivo foi renomeado de .env para 'env' para evitar o erro 404 no Web.
-  assets: 
-     - .env
+  assets:
+    - .env
+
  
 
   # An image asset can refer to one or more resolution-specific "variants", see
