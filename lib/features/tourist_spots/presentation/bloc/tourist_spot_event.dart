@@ -17,4 +17,11 @@ class GetNearbySpotsEvent extends TouristSpotEvent {
   List<Object> get props => [lat, lng];
 }
 
-class GetSpotsByCurrentLocationEvent extends TouristSpotEvent {}
+class GetSpotsByCurrentLocationEvent extends TouristSpotEvent {
+  final double radiusKm;
+
+  const GetSpotsByCurrentLocationEvent({this.radiusKm = 2.0});
+
+  @override
+  List<Object> get props => [radiusKm];
+}

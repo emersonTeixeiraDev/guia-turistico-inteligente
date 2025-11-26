@@ -1,3 +1,4 @@
+import 'package:geolocator/geolocator.dart';
 import '../../domain/entities/tourist_spot.dart';
 
 class TouristSpotModel extends TouristSpot {
@@ -12,10 +13,14 @@ class TouristSpotModel extends TouristSpot {
     super.rating,
   });
 
-  // Fábrica específica para o JSON da Overpass API
-  factory TouristSpotModel.fromOverpassJson(Map<String, dynamic> json) {
+  factory TouristSpotModel.fromOverpassJson(
+    Map<String, dynamic> json,
+    double userLat,
+    double userLng,
+  ) {
     final tags = json['tags'] ?? {};
 
+    // Categorização
     String category = 'tourist_attraction';
     String displayType = 'Ponto Turístico';
 
@@ -31,25 +36,37 @@ class TouristSpotModel extends TouristSpot {
     } else if (tags.containsKey('religion')) {
       category = 'cathedral';
       displayType = 'Religioso (${tags['religion']})';
+    } else if (tags.containsKey('leisure')) {
+      category = tags['leisure'];
+      displayType = 'Lazer (${tags['leisure']})';
     }
 
     category = category.replaceAll('_', ' ');
 
+    // Coordenadas do Ponto
+    final double spotLat = (json['lat'] ?? 0.0).toDouble();
+    final double spotLon = (json['lon'] ?? 0.0).toDouble();
+
+    final double calculatedDistance = Geolocator.distanceBetween(
+      userLat,
+      userLng,
+      spotLat,
+      spotLon,
+    );
+
     return TouristSpotModel(
       id: json['id'].toString(),
       name: tags['name'] ?? 'Local Interessante',
-      description:
-          displayType, // Descrição provisória (será substituída pela IA)
+      description: displayType,
       imageUrl:
           'https://loremflickr.com/400/400/$category?random=${json['id']}',
-      latitude: (json['lat'] ?? 0.0).toDouble(),
-      longitude: (json['lon'] ?? 0.0).toDouble(),
-      distance: 0,
-      rating: 0.0, // Começa com 0 até a IA analisar
+      latitude: spotLat,
+      longitude: spotLon,
+      distance: calculatedDistance, // Distância calculada
+      rating: 0.0,
     );
   }
 
-  // Permite alterar valores específicos mantendo o resto igual
   TouristSpotModel copyWith({
     String? name,
     String? description,

@@ -1,5 +1,5 @@
 import 'package:dartz/dartz.dart';
-import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart'; // Certifique-se de importar suas Exceptions
 import 'package:guia_turistico_inteligente/core/error/failures.dart';
 import 'package:guia_turistico_inteligente/features/tourist_spots/data/datasources/ai_curation_service.dart';
 import 'package:guia_turistico_inteligente/features/tourist_spots/data/datasources/tourist_spot_remote_datasource.dart';
@@ -21,7 +21,7 @@ void main() {
   const tLat = 38.69;
   const tLng = -9.20;
 
-  const tTouristSpotModel = TouristSpotModel(
+  final tTouristSpotModel = TouristSpotModel(
     id: '1',
     name: 'Castelo de São Jorge',
     description: 'Um castelo medieval',
@@ -34,6 +34,10 @@ void main() {
 
   final List<TouristSpotModel> tTouristSpotModelList = [tTouristSpotModel];
   final List<TouristSpot> tTouristSpotEntityList = tTouristSpotModelList;
+
+  setUpAll(() {
+    registerFallbackValue(<TouristSpotModel>[]);
+  });
 
   setUp(() {
     mockRemoteDataSource = MockRemoteDataSource();
@@ -50,7 +54,11 @@ void main() {
       'deve retornar dados curados pela IA quando a chamada for bem sucedida',
       () async {
         when(
-          () => mockRemoteDataSource.getNearbySpots(any(), any()),
+          () => mockRemoteDataSource.getNearbySpots(
+            any(),
+            any(),
+            radiusKm: any(named: 'radiusKm'),
+          ),
         ).thenAnswer((_) async => tTouristSpotModelList);
 
         when(
@@ -59,11 +67,10 @@ void main() {
 
         final result = await repository.getNearbySpots(lat: tLat, lng: tLng);
 
-        // ASSERT
-        // Verifica chamada no OSM
-        verify(() => mockRemoteDataSource.getNearbySpots(tLat, tLng)).called(1);
+        verify(
+          () => mockRemoteDataSource.getNearbySpots(tLat, tLng, radiusKm: 2.0),
+        ).called(1);
 
-        // Verifica chamada na IA
         verify(
           () => mockAICurationService.curateList(tTouristSpotModelList),
         ).called(1);
@@ -76,12 +83,22 @@ void main() {
       'deve retornar ServerFailure quando a chamada remota falhar',
       () async {
         when(
-          () => mockRemoteDataSource.getNearbySpots(any(), any()),
+          () => mockRemoteDataSource.getNearbySpots(
+            any(),
+            any(),
+            radiusKm: any(named: 'radiusKm'),
+          ),
         ).thenThrow(ServerException());
 
         final result = await repository.getNearbySpots(lat: tLat, lng: tLng);
 
-        verify(() => mockRemoteDataSource.getNearbySpots(tLat, tLng)).called(1);
+        verify(
+          () => mockRemoteDataSource.getNearbySpots(
+            tLat,
+            tLng,
+            radiusKm: any(named: 'radiusKm'),
+          ),
+        ).called(1);
 
         verifyNever(() => mockAICurationService.curateList(any()));
 

@@ -19,9 +19,14 @@ class TouristSpotRepositoryImpl implements TouristSpotRepository {
   Future<Either<Failure, List<TouristSpot>>> getNearbySpots({
     required double lat,
     required double lng,
+    double radiusKm = 2.0,
   }) async {
     try {
-      final rawSpots = await remoteDataSource.getNearbySpots(lat, lng);
+      final rawSpots = await remoteDataSource.getNearbySpots(
+        lat,
+        lng,
+        radiusKm: radiusKm,
+      );
       final curatedSpots = await aiCurationService.curateList(rawSpots);
 
       return Right(curatedSpots);
