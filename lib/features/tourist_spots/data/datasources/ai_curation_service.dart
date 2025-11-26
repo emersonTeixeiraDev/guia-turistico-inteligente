@@ -105,12 +105,12 @@ class AICurationService {
         // Se chegou aqui, deu sucesso!
         return curatedList;
       } catch (e) {
-        print('⚠️ Erro na tentativa $attempts: $e');
+        //print('⚠️ Erro na tentativa $attempts: $e');
 
         if (attempts >= maxAttempts) {
-          print(
-            '❌ Gemini falhou após $maxAttempts tentativas. Retornando dados brutos.',
-          );
+          //print(
+          // '❌ Gemini falhou após $maxAttempts tentativas. Retornando dados brutos.',
+          //);
           return limitedSpots;
         }
 
