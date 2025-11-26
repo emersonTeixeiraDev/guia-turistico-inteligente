@@ -1,4 +1,4 @@
-import 'dart:convert';
+import 'dart:convert'; // 1. Import de Segurança
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import '../models/tourist_spot_model.dart';
@@ -7,12 +7,12 @@ class AICurationService {
   late final GenerativeModel _model;
 
   AICurationService() {
-    // Lê a chave do arquivo .env. Se não achar, usa string vazia (vai dar erro, mas não crasha)
+    // 2. USO DA CHAVE SEGURA VIA DOTENV
     final apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
 
     _model = GenerativeModel(
-      model: 'gemini-2.0-flash',
-      apiKey: apiKey, // <--- Usa a variável aqui
+      model: 'gemini-2.0-flash', // Modelo que se provou estável
+      apiKey: apiKey,
     );
   }
 
@@ -21,7 +21,7 @@ class AICurationService {
   ) async {
     if (rawSpots.isEmpty) return [];
 
-    // Pega os 30 primeiros para não travar a IA
+    // Limita a lista de entrada
     final limitedSpots = rawSpots.length > 30
         ? rawSpots.sublist(0, 30)
         : rawSpots;
@@ -36,10 +36,10 @@ class AICurationService {
 
     final String spotsJson = jsonEncode(spotsToAnalyze);
 
-    // Prompt (Mesmo de antes)
     final prompt =
         '''
     Atue como um Guia Turístico Especialista. Analise a lista de locais abaixo.
+    
     Regras:
     1. Rating: Nota de 1.0 a 5.0 baseada na qualidade e importância PARA A CIDADE LOCAL.
     2. Descrição: Resumo curto e vendedor (máx 2 frases) em Português.
@@ -68,7 +68,6 @@ class AICurationService {
     while (attempts < maxAttempts) {
       try {
         attempts++;
-        // print('🤖 Gemini: Tentativa $attempts de $maxAttempts...');
 
         final content = [Content.text(prompt)];
         final response = await _model.generateContent(content);
@@ -96,7 +95,7 @@ class AICurationService {
             final double rating = (aiData['rating'] as num).toDouble();
             final bool isRelevant = aiData['is_relevant'] == true;
 
-            // Filtro: Apenas relevantes e nota >= 4.0
+            // Filtro: Apenas relevantes E nota >= 4.0
             if (isRelevant && rating >= 4.0) {
               curatedList.add(
                 originalSpot.copyWith(
@@ -108,7 +107,7 @@ class AICurationService {
           }
         }
 
-        // Se chegou aqui, deu sucesso! Retorna a lista.
+        // Se chegou aqui, deu sucesso! Retorna a lista filtrada.
         return curatedList;
       } catch (e) {
         print('⚠️ Erro na tentativa $attempts: $e');
@@ -121,8 +120,7 @@ class AICurationService {
           return limitedSpots;
         }
 
-        // Se não for a última, espera um pouco antes de tentar de novo (Backoff)
-        // Espera 1 segundo na primeira vez, 2 na segunda...
+        // Espera um pouco antes de tentar de novo (Backoff)
         await Future.delayed(Duration(seconds: attempts));
       }
     }

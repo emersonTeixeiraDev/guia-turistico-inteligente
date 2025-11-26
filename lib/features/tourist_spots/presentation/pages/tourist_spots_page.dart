@@ -11,10 +11,13 @@ class TouristSpotsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Definimos o raio inicial como 2km para a primeira busca
+    const double initialRadiusKm = 2.0;
+
     return BlocProvider(
-      create: (_) =>
-          sl<TouristSpotBloc>()
-            ..add(GetSpotsByCurrentLocationEvent(radiusKm: 2)),
+      create: (_) => sl<TouristSpotBloc>()
+        // Dispara a primeira busca com o raio mínimo de 2km
+        ..add(const GetSpotsByCurrentLocationEvent(radiusKm: initialRadiusKm)),
 
       child: Scaffold(
         appBar: AppBar(title: const Text('Guia Turístico Inteligente')),
@@ -25,6 +28,10 @@ class TouristSpotsPage extends StatelessWidget {
   }
 }
 
+// ------------------------------------------------------------------
+// WIDGET DO CORPO (COM LÓGICA DO SLIDER)
+// ------------------------------------------------------------------
+
 class TouristSpotsBody extends StatefulWidget {
   const TouristSpotsBody({super.key});
 
@@ -33,7 +40,7 @@ class TouristSpotsBody extends StatefulWidget {
 }
 
 class _TouristSpotsBodyState extends State<TouristSpotsBody> {
-  // Começa visualmente em 2km para bater com a busca inicial
+  // Estado local para o Slider. Inicializa em 2km para bater com a busca inicial.
   double _currentRadius = 2.0;
 
   @override
@@ -43,7 +50,7 @@ class _TouristSpotsBodyState extends State<TouristSpotsBody> {
         if (state is TouristSpotLoading) {
           return const Center(child: CircularProgressIndicator());
         } else if (state is TouristSpotLoaded) {
-          // CASO 1: LISTA VAZIA -> MOSTRA O SLIDER
+          // CASO 1: LISTA VAZIA -> MOSTRA O SLIDER (UX para expandir a busca)
           if (state.spots.isEmpty) {
             return Center(
               child: Padding(
@@ -95,14 +102,14 @@ class _TouristSpotsBodyState extends State<TouristSpotsBody> {
             );
           }
 
-          // CASO 2: TEM ITENS -> MOSTRA SÓ A LISTA (Slider some)
+          // CASO 2: TEM ITENS -> MOSTRA SÓ A LISTA (Slider some, conforme regra de UX)
           return Column(
             children: [
-              // Um pequeno aviso discreto de qual raio foi usado (opcional, boa UX)
+              // Aviso discreto do raio usado
               Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: Text(
-                  'Mostrando locais em um raio de ${_currentRadius.toInt()} km',
+                  'Mostrando ${state.spots.length} locais em um raio de ${_currentRadius.toInt()} km',
                   style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                 ),
               ),
@@ -117,7 +124,6 @@ class _TouristSpotsBodyState extends State<TouristSpotsBody> {
             ],
           );
         } else if (state is TouristSpotError) {
-          // Em caso de erro, mostramos o botão de tentar de novo
           return Center(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
@@ -148,30 +154,28 @@ class _TouristSpotsBodyState extends State<TouristSpotsBody> {
             ),
           );
         }
-        return const SizedBox();
+        return const Center(child: Text('Inicializando GPS...'));
       },
     );
   }
 }
 
-class SearchButton extends StatelessWidget {
-  const SearchButton({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return FloatingActionButton(
-      onPressed: () {
-        context.read<TouristSpotBloc>().add(GetSpotsByCurrentLocationEvent());
-      },
-      child: const Icon(Icons.my_location),
-    );
-  }
-}
+// ------------------------------------------------------------------
+// WIDGET CARD
+// ------------------------------------------------------------------
 
 class SpotCard extends StatelessWidget {
   final TouristSpot spot;
 
   const SpotCard({super.key, required this.spot});
+
+  // Função auxiliar para formatar metros em Km
+  String _formatDistance(double meters) {
+    if (meters >= 1000) {
+      return '${(meters / 1000).toStringAsFixed(1)} km';
+    }
+    return '${meters.toStringAsFixed(0)} m';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -188,7 +192,7 @@ class SpotCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. Imagem do Local
+              // 1. Imagem
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: spot.imageUrl.isNotEmpty
@@ -240,7 +244,7 @@ class SpotCard extends StatelessWidget {
                           ),
                         ),
 
-                        // ⭐ AQUI ESTÁ A NOTA!
+                        // ⭐ AQUI ESTÁ A NOTA! (Somente se for > 0)
                         if (spot.rating > 0)
                           Container(
                             padding: const EdgeInsets.symmetric(
@@ -257,7 +261,7 @@ class SpotCard extends StatelessWidget {
                                   Icons.star,
                                   size: 14,
                                   color: Colors.amber,
-                                ), // Estrela
+                                ),
                                 const SizedBox(width: 4),
                                 Text(
                                   spot.rating.toStringAsFixed(1), // Ex: "4.8"
@@ -313,12 +317,25 @@ class SpotCard extends StatelessWidget {
       ),
     );
   }
+}
 
-  // Funçãozinha auxiliar para deixar a distância bonita (km ou m)
-  String _formatDistance(double meters) {
-    if (meters >= 1000) {
-      return '${(meters / 1000).toStringAsFixed(1)} km';
-    }
-    return '${meters.toStringAsFixed(0)} m';
+// ------------------------------------------------------------------
+// BOTÃO FLUTUANTE
+// ------------------------------------------------------------------
+
+class SearchButton extends StatelessWidget {
+  const SearchButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return FloatingActionButton(
+      onPressed: () {
+        // Redispára a busca com o raio inicial (2km)
+        context.read<TouristSpotBloc>().add(
+          const GetSpotsByCurrentLocationEvent(radiusKm: 2.0),
+        );
+      },
+      child: const Icon(Icons.my_location),
+    );
   }
 }
