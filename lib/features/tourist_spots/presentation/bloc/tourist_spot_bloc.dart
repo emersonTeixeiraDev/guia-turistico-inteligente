@@ -70,6 +70,8 @@ class TouristSpotBloc extends Bloc<TouristSpotEvent, TouristSpotState> {
     );
   }
 
+  // --- LÓGICA MANUAL ---
+  // CORREÇÃO 3: Esta função foi movida para DENTRO da classe
   Future<void> _onGetNearbySpots(
     GetNearbySpotsEvent event,
     Emitter<TouristSpotState> emit,
