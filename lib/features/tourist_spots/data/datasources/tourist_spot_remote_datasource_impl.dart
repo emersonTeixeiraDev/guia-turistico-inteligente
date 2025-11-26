@@ -16,9 +16,9 @@ class TouristSpotRemoteDataSourceImpl implements TouristSpotRemoteDataSource {
     double radiusKm = 2.0,
   }) async {
     try {
-      print(
-        '🌍 Consultando OSM (Apenas Famosos/Wiki) com Raio de ${radiusKm}km',
-      );
+      // ///(
+      //   '🌍 Consultando OSM (Apenas Famosos/Wiki) com Raio de ${radiusKm}km',
+      // );
 
       final radiusMeters = (radiusKm * 1000).toInt();
 
@@ -51,7 +51,7 @@ class TouristSpotRemoteDataSourceImpl implements TouristSpotRemoteDataSource {
             (e) => e['tags'] != null && e['tags']['name'] != null,
           );
 
-          print('✅ Encontrados ${validSpots.length} locais FAMOSOS.');
+          // print('✅ Encontrados ${validSpots.length} locais FAMOSOS.');
 
           return validSpots
               .map(
@@ -59,14 +59,14 @@ class TouristSpotRemoteDataSourceImpl implements TouristSpotRemoteDataSource {
               ) // Passando lat/lng user
               .toList();
         } else {
-          print('⚠️ Nenhum local famoso encontrado neste raio.');
+          //print('⚠️ Nenhum local famoso encontrado neste raio.');
           return [];
         }
       } else {
         throw ServerException();
       }
     } catch (e) {
-      print('❌ Erro na conexão com Overpass: $e');
+      //print('❌ Erro na conexão com Overpass: $e');
       throw ServerException();
     }
   }
